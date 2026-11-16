@@ -1,4 +1,4 @@
-import './globals.css'; // Dòng này cực kỳ quan trọng để load giao diện Tailwind
+import '@/app/globals.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

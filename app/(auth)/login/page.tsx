@@ -39,25 +39,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#d65a18]">
+    <div className="min-h-screen flex flex-col bg-blue-600">
       
-      {/* THANH MENU TRÊN CÙNG (GIỐNG TRONG ẢNH) */}
+      {/* THANH MENU TRÊN CÙNG */}
       <div className="bg-white h-10 w-full flex justify-end items-center px-4 md:px-12 gap-6 text-sm text-gray-600 border-b">
-        <button className="flex items-center gap-1 hover:text-gray-900">
+        <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
           <span>🛒</span> Xem giỏ hàng
         </button>
-        <button className="flex items-center gap-1 hover:text-gray-900">
+        <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
           <span>🇻🇳</span> Tiếng Việt ▾
         </button>
-        <button className="hover:text-gray-900">VND ▾</button>
-        <button className="flex items-center gap-1 hover:text-gray-900">
+        <button className="hover:text-blue-600 transition-colors">VND ▾</button>
+        <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
           <span>👤</span> Tài khoản của tôi ▾
         </button>
       </div>
 
-      {/* KHU VỰC FORM ĐĂNG NHẬP */}
+      {/* KHU VỰC FORM ĐĂNG NHẬP CĂN GIỮA */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-[400px] p-8 shadow-xl rounded-sm">
+        <div className="bg-white w-full max-w-[400px] p-8 shadow-2xl rounded-lg">
           
           <h1 className="text-[26px] font-bold text-center text-gray-900 mb-8 leading-tight">
             Đăng nhập Secure<br />Client
@@ -65,20 +65,20 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 text-sm text-center border border-red-100">
+              <div className="bg-red-50 text-red-600 p-3 text-sm text-center border border-red-100 rounded">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-[13px] text-gray-500 mb-1.5">
+              <label className="block text-[13px] font-medium text-gray-600 mb-1.5">
                 Địa chỉ email / Tài khoản
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 focus:border-[#d65a18] focus:ring-1 focus:ring-[#d65a18] outline-none text-sm transition-colors"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none text-sm transition-colors"
                 placeholder="Nhập tài khoản admin..."
                 required
               />
@@ -86,10 +86,10 @@ export default function LoginPage() {
 
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[13px] text-gray-500">
+                <label className="block text-[13px] font-medium text-gray-600">
                   Mật khẩu
                 </label>
-                <Link href="#" className="text-[13px] text-[#d65a18] hover:underline">
+                <Link href="#" className="text-[13px] text-blue-600 hover:underline">
                   Quên mật khẩu?
                 </Link>
               </div>
@@ -97,15 +97,15 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 focus:border-[#d65a18] focus:ring-1 focus:ring-[#d65a18] outline-none text-sm transition-colors"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none text-sm transition-colors"
                 placeholder="••••••••••••"
                 required
               />
             </div>
 
             <div className="flex items-center gap-2 pt-1">
-              <input type="checkbox" id="remember" className="w-4 h-4 text-[#d65a18] border-gray-300 rounded" />
-              <label htmlFor="remember" className="text-[13px] text-gray-700">
+              <input type="checkbox" id="remember" className="w-4 h-4 text-blue-600 border-gray-300 rounded cursor-pointer" />
+              <label htmlFor="remember" className="text-[13px] text-gray-600 cursor-pointer">
                 Ghi nhớ thông tin đăng nhập
               </label>
             </div>
@@ -113,14 +113,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#df7a36] hover:bg-[#d65a18] text-white font-bold py-2.5 px-4 text-sm transition-colors disabled:opacity-70 mt-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded text-sm transition-colors disabled:opacity-70 mt-2 shadow-md shadow-blue-500/30"
             >
               {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
             </button>
           </form>
 
           <div className="mt-8 text-center text-[13px] text-gray-500 pt-6 border-t border-gray-100">
-            Bạn chưa có tài khoản? <Link href="#" className="text-[#d65a18] hover:underline">Tạo tài khoản mới</Link>
+            Bạn chưa có tài khoản? <Link href="#" className="text-blue-600 font-medium hover:underline">Tạo tài khoản mới</Link>
           </div>
 
         </div>
