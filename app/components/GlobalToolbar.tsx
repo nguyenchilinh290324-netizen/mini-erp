@@ -50,7 +50,45 @@ const DICTIONARY: Record<string, string> = {
   'Thùng': '箱',
   'Hộp': '盒',
   'Đôi': '双',
-  'Kg': '公斤'
+  'Kg': '公斤',
+  'Mét': '米',
+  'Tấm': '张',
+  // Trang Quản lý Danh mục Hàng hoá & Modal
+  'Quản lý Danh mục Hàng hoá': '商品目录管理',
+  '+ Thêm Sản Phẩm Mới': '+ 新增产品',
+  '📥 Nhập từ File Excel': '📥 从 Excel 导入',
+  '⏳ Đang tải lên Neon...': '⏳ 正在上传至数据库...',
+  '📤 Xuất File Excel Mẫu': '📤 导出 Excel 模板',
+  'Tên Hàng Hoá': '产品名称',
+  'Tên Tiếng Trung': '中文名称',
+  'Quy Cách': '规格型号',
+  'Giá Vốn': '成本价',
+  'Giá Bán': '销售价',
+  'Tồn Kho': '当前库存',
+  'Hành Động': '操作',
+  'Sửa': '编辑',
+  'Xoá': '删除',
+  'Đang tải dữ liệu...': '正在加载数据...',
+  'Không tìm thấy sản phẩm nào.': '未找到相关产品。',
+  'Thêm Sản phẩm Mới': '新增产品',
+  'Chỉnh sửa Sản phẩm': '编辑产品',
+  'Mã SKU *': 'SKU 编码 *',
+  'Đơn vị tính (ĐVT)': '计量单位 (单位)',
+  'Tên Hàng Hoá (Tiếng Việt) *': '产品名称 (越南语) *',
+  'Tên Tiếng Trung (中文名称)': '中文名称',
+  'Quy Cách (规格型号)': '规格型号',
+  'Giá Vốn (VNĐ)': '成本价 (VNĐ)',
+  'Giá Bán (VNĐ)': '销售价 (VNĐ)',
+  'Danh Mục': '产品分类',
+  'Hình ảnh sản phẩm (Tải lên Cloudflare R2)': '产品图片 (上传至 Cloudflare R2)',
+  'Đang tải ảnh lên R2...': '正在上传图片至 R2...',
+  'Huỷ': '取消',
+  'Lưu Sản Phẩm': '保存产品',
+};
+
+const PLACEHOLDER_DICT: Record<string, string> = {
+  'Tìm theo SKU, Tên Việt, Tên Trung, Quy cách...': '按 SKU、越文名、中文名、规格搜索...',
+  'Tìm kiếm theo SKU hoặc Tên...': '按 SKU 或名称搜索...',
 };
 
 export default function GlobalToolbar() {
@@ -66,6 +104,7 @@ export default function GlobalToolbar() {
 
   useEffect(() => {
     const translatePage = () => {
+      // 1. Dịch toàn bộ văn bản hiển thị
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
       let node: Node | null;
       while ((node = walker.nextNode())) {
@@ -97,10 +136,39 @@ export default function GlobalToolbar() {
           }
         }
       }
+
+      // 2. Dịch luôn chữ gợi ý trong các ô tìm kiếm (input placeholder)
+      const inputs = document.querySelectorAll('input[placeholder]');
+      inputs.forEach((el) => {
+        const input = el as HTMLInputElement;
+        const ph = input.placeholder?.trim();
+        if (!ph) return;
+        if (lang === 'zh' && PLACEHOLDER_DICT[ph]) {
+          (input as any)._originalPh = ph;
+          input.placeholder = PLACEHOLDER_DICT[ph];
+        } else if (lang === 'vi') {
+          if ((input as any)._originalPh) {
+            input.placeholder = (input as any)._originalPh;
+          } else {
+            const viPh = Object.keys(PLACEHOLDER_DICT).find(k => PLACEHOLDER_DICT[k] === ph);
+            if (viPh) input.placeholder = viPh;
+          }
+        }
+      });
     };
 
     const timer = setTimeout(translatePage, 80);
-    return () => clearTimeout(timer);
+
+    // Tự động dịch ngay khi dữ liệu từ Neon DB tải xong hoặc khi mở Popup
+    const observer = new MutationObserver(() => {
+      if (lang === 'zh') translatePage();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [lang, pathname]);
 
   const switchLanguage = (newLang: 'vi' | 'zh') => {
@@ -112,7 +180,6 @@ export default function GlobalToolbar() {
     window.print();
   };
 
-  // Không hiện thanh công cụ này ở màn hình login (vì màn hình login đã có nút riêng)
   if (pathname === '/login') return null;
 
   return (
@@ -132,7 +199,6 @@ export default function GlobalToolbar() {
         fontFamily: 'Segoe UI, Arial, sans-serif'
       }}
     >
-      {/* Nút quay về Trang chủ từ bất kỳ trang con nào */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <Link
           href="/"
@@ -156,7 +222,6 @@ export default function GlobalToolbar() {
         </span>
       </div>
 
-      {/* Cụm nút Ngôn ngữ Việt/Trung & Xuất PDF */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div
           style={{

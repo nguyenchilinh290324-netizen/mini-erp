@@ -53,10 +53,10 @@ export default async function DashboardPage() {
 
     // 5. Danh sách sản phẩm hiển thị trực tiếp ngay trên trang chủ
     const productsRes = await client.query(`
-      SELECT id, sku, name, unit, cost_price, sell_price, stock_quantity 
-      FROM products 
-      ORDER BY id DESC 
-      LIMIT 15
+      SELECT id, sku, name, COALESCE(name_zh, '') as name_zh, COALESCE(specification, '') as specification, unit, cost_price, sell_price, stock_quantity 
+FROM products 
+ORDER BY id DESC 
+LIMIT 15
     `);
     const allProducts = productsRes.rows;
 
@@ -148,6 +148,8 @@ export default async function DashboardPage() {
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
                   <th style={{ padding: '12px', color: '#475569' }}>Mã SKU</th>
                   <th style={{ padding: '12px', color: '#475569' }}>Tên sản phẩm</th>
+                  <th style={{ padding: '12px', color: '#475569' }}>Tên sản phẩm (Tiếng Trung)</th>
+                  <th style={{ padding: '12px', color: '#475569' }}>Quy cách</th>
                   <th style={{ padding: '12px', color: '#475569' }}>ĐVT</th>
                   <th style={{ padding: '12px', color: '#475569', textAlign: 'right' }}>Giá vốn</th>
                   <th style={{ padding: '12px', color: '#475569', textAlign: 'right' }}>Giá bán</th>
