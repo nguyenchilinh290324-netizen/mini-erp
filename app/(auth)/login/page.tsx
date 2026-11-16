@@ -43,7 +43,7 @@ export default function LoginPage() {
       className="min-h-screen flex flex-col bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: "url('/bg-login.jpg')" }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-0"></div>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0"></div>
       
       {/* THANH MENU TRÊN CÙNG */}
       <div className="bg-white/95 h-10 w-full flex justify-end items-center px-4 md:px-12 gap-6 text-sm text-gray-700 border-b relative z-10 shadow-sm">
@@ -59,18 +59,12 @@ export default function LoginPage() {
         </button>
       </div>
 
-      {/* KHU VỰC FORM ĐĂNG NHẬP (Căn giữa, nền trắng) */}
+      {/* KHU VỰC FORM ĐĂNG NHẬP CĂN GIỮA */}
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
         <div className="bg-white w-full max-w-[400px] p-8 shadow-2xl rounded-lg">
           
-          <div className="text-center mb-6">
-            {/* Logo được ép cứng chiều cao (h-20) để không bao giờ bị phóng to */}
-            <img 
-              src="/logo.png" 
-              alt="KMĐ ERP Logo" 
-              className="h-20 w-auto mx-auto mb-4 object-contain" 
-            />
-            <h1 className="text-[24px] font-bold text-gray-900 leading-tight">
+          <div className="text-center mb-8">
+            <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
               Đăng nhập<br />KMĐ ERP
             </h1>
           </div>
