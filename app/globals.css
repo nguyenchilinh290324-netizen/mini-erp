@@ -12,3 +12,19 @@ body {
   background-color: #eef2f6;
   font-family: 'Segoe UI', Roboto, Arial, sans-serif;
 }
+
+/* Cấu hình xuất PDF chuẩn trên mọi trang */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}

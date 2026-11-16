@@ -1,9 +1,13 @@
-import '@/app/globals.css';
+import './globals.css';
+import GlobalToolbar from '@/app/components/GlobalToolbar';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body>
+        <GlobalToolbar />
+        {children}
+      </body>
     </html>
-  ); 
+  );
 }
