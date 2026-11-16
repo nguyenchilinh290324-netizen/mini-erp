@@ -2,14 +2,38 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
+const translations = {
+  vi: {
+    title: 'Hệ thống Quản lý Cung ứng KMĐ ERP',
+    usernamePlaceholder: 'Tài khoản / Mã nhân viên (VD: JM001)',
+    passwordPlaceholder: 'Mật khẩu',
+    loginBtn: 'Đăng nhập',
+    loggingIn: 'Đang xác thực...',
+    errorConnect: 'Mất kết nối đến máy chủ',
+    errorDefault: 'Đăng nhập thất bại',
+  },
+  zh: {
+    title: '金明台 ERP 采购管理系统',
+    usernamePlaceholder: '账号 / 员工编号 (例: JM001)',
+    passwordPlaceholder: '密码',
+    loginBtn: '登录',
+    loggingIn: '登录中...',
+    errorConnect: '服务器连接失败',
+    errorDefault: '登录失败',
+  }
+};
 
 export default function LoginPage() {
   const router = useRouter();
+  const [lang, setLang] = useState<'vi' | 'zh'>('vi');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const t = translations[lang];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,104 +53,256 @@ export default function LoginPage() {
         router.push('/');
         router.refresh();
       } else {
-        setError(data.error || 'Đăng nhập thất bại');
+        setError(data.error || t.errorDefault);
       }
     } catch (err) {
-      setError('Mất kết nối đến máy chủ');
+      setError(t.errorConnect);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div 
-      className="min-h-screen flex flex-col bg-cover bg-center bg-no-repeat relative"
-      style={{ backgroundImage: "url('/bg-login.jpg')" }}
-    >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0"></div>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#eef2f6',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fontFamily: 'Segoe UI, Roboto, Arial, sans-serif',
+      padding: '20px',
+      position: 'relative'
+    }}>
       
-      {/* THANH MENU TRÊN CÙNG */}
-      <div className="bg-white/95 h-10 w-full flex justify-end items-center px-4 md:px-12 gap-6 text-sm text-gray-700 border-b relative z-10 shadow-sm">
-        <button className="flex items-center gap-1 hover:text-[#df7a36] transition-colors">
-          <span>🛒</span> Xem giỏ hàng
+      {/* NÚT CHUYỂN ĐỔI NGÔN NGỮ VIỆT - TRUNG Ở GÓC TRÊN PHẢI */}
+      <div style={{
+        position: 'absolute',
+        top: '24px',
+        right: '32px',
+        display: 'flex',
+        gap: '8px',
+        backgroundColor: '#ffffff',
+        padding: '6px 10px',
+        borderRadius: '6px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        border: '1px solid #dce1e7'
+      }}>
+        <button
+          type="button"
+          onClick={() => setLang('vi')}
+          style={{
+            padding: '5px 12px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: lang === 'vi' ? 600 : 400,
+            backgroundColor: lang === 'vi' ? '#0d56a6' : 'transparent',
+            color: lang === 'vi' ? '#ffffff' : '#4b5563',
+            fontSize: '13px',
+            transition: 'all 0.2s'
+          }}
+        >
+          🇻🇳 Tiếng Việt
         </button>
-        <button className="flex items-center gap-1 hover:text-[#df7a36] transition-colors">
-          <span>🇻🇳</span> Tiếng Việt ▾
-        </button>
-        <button className="hover:text-[#df7a36] transition-colors">VND ▾</button>
-        <button className="flex items-center gap-1 hover:text-[#df7a36] transition-colors">
-          <span>👤</span> Tài khoản của tôi ▾
+        <button
+          type="button"
+          onClick={() => setLang('zh')}
+          style={{
+            padding: '5px 12px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: lang === 'zh' ? 600 : 400,
+            backgroundColor: lang === 'zh' ? '#0d56a6' : 'transparent',
+            color: lang === 'zh' ? '#ffffff' : '#4b5563',
+            fontSize: '13px',
+            transition: 'all 0.2s'
+          }}
+        >
+          🇨🇳 中文
         </button>
       </div>
 
-      {/* KHU VỰC FORM ĐĂNG NHẬP CĂN GIỮA */}
-      <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <div className="bg-white w-full max-w-[400px] p-8 shadow-2xl rounded-lg">
-          
-          <div className="text-center mb-8">
-            <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
-              Đăng nhập<br />KMĐ ERP
-            </h1>
-          </div>
+      {/* KHUNG CHÍNH VIỀN VÀNG CAM GIỐNG HÌNH 1 */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '2px solid #e5a000',
+        width: '100%',
+        maxWidth: '720px',
+        padding: '40px 48px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '48px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+      }}>
+        
+        {/* CỘT TRÁI: HÌNH ẢNH ĐẠI DIỆN */}
+        <div style={{
+          width: '230px',
+          height: '290px',
+          flexShrink: 0,
+          backgroundColor: '#f3f4f6',
+          overflow: 'hidden',
+          border: '1px solid #e5e7eb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <img
+            src="/bg-login.jpg"
+            alt="ERP Banner"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 text-sm text-center border border-red-100 rounded">
-                {error}
-              </div>
-            )}
+        {/* CỘT PHẢI: FORM ĐĂNG NHẬP */}
+        <div style={{
+          flex: 1,
+          minWidth: '260px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <h1 style={{
+            color: '#0d56a6',
+            fontSize: '21px',
+            fontWeight: 600,
+            letterSpacing: '1.5px',
+            marginBottom: '26px',
+            marginTop: 0,
+            lineHeight: '1.4'
+          }}>
+            {t.title}
+          </h1>
 
+          {error && (
+            <div style={{
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              padding: '10px 12px',
+              fontSize: '13px',
+              border: '1px solid #fecaca',
+              marginBottom: '16px',
+              borderRadius: '2px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>
-              <label className="block text-[13px] font-medium text-gray-600 mb-1.5">
-                Địa chỉ email / Tài khoản
-              </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded focus:border-[#df7a36] focus:ring-1 focus:ring-[#df7a36] outline-none text-sm transition-colors"
-                placeholder="Nhập tài khoản admin..."
+                placeholder={t.usernamePlaceholder}
                 required
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  padding: '0 12px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '14px',
+                  color: '#111827',
+                  boxSizing: 'border-box',
+                  outline: 'none'
+                }}
               />
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[13px] font-medium text-gray-600">
-                  Mật khẩu
-                </label>
-                <Link href="#" className="text-[13px] text-[#df7a36] hover:underline">
-                  Quên mật khẩu?
-                </Link>
-              </div>
+            <div style={{ position: 'relative' }}>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded focus:border-[#df7a36] focus:ring-1 focus:ring-[#df7a36] outline-none text-sm transition-colors"
-                placeholder="••••••••••••"
+                placeholder={t.passwordPlaceholder}
                 required
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  padding: '0 38px 0 12px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '14px',
+                  color: '#111827',
+                  boxSizing: 'border-box',
+                  outline: 'none'
+                }}
               />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input type="checkbox" id="remember" className="w-4 h-4 text-[#df7a36] border-gray-300 rounded cursor-pointer" />
-              <label htmlFor="remember" className="text-[13px] text-gray-600 cursor-pointer">
-                Ghi nhớ thông tin đăng nhập
-              </label>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  fontSize: '14px'
+                }}
+                title="Hiện/Ẩn mật khẩu"
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#df7a36] hover:bg-[#d65a18] text-white font-bold py-2.5 px-4 rounded text-sm transition-colors disabled:opacity-70 mt-2 shadow-md"
+              style={{
+                width: '100%',
+                height: '38px',
+                backgroundColor: '#0d56a6',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1,
+                marginTop: '4px',
+                letterSpacing: '1px'
+              }}
             >
-              {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
+              {isLoading ? t.loggingIn : t.loginBtn}
             </button>
           </form>
 
-          <div className="mt-8 text-center text-[13px] text-gray-500 pt-6 border-t border-gray-100">
-            Bạn chưa có tài khoản? <Link href="#" className="text-[#df7a36] font-medium hover:underline">Tạo tài khoản mới</Link>
+          {/* LOGO VÀ THƯƠNG HIỆU BÊN DƯỚI NÚT ĐĂNG NHẬP */}
+          <div style={{
+            marginTop: '34px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              style={{
+                height: '34px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+            <div style={{
+              backgroundColor: '#0d56a6',
+              color: '#ffffff',
+              padding: '5px 14px',
+              fontWeight: 700,
+              fontSize: '16px',
+              letterSpacing: '1px'
+            }}>
+              KIM MINH ĐÀI <span>金明台</span>
+            </div>
           </div>
 
         </div>
