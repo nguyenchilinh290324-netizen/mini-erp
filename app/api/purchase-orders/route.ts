@@ -4,16 +4,16 @@ import { pool } from '@/lib/db';
 export async function POST(req: Request) {
   const client = await pool.connect();
   try {
-    // 1. AUTO-MIGRATION: Đảm bảo bảng và cột tồn tại
+    // 1. AUTO-MIGRATION: Đảm bảo bảng và cột tồn tại, đồng thời XÓA KHÓA NGOẠI GÂY XUNG ĐỘT
     await client.query(`
       CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS order_items (id SERIAL PRIMARY KEY);
       
       DO $$
       BEGIN
+        -- Thêm các cột cơ bản
         BEGIN ALTER TABLE orders ADD COLUMN order_number VARCHAR(50); EXCEPTION WHEN duplicate_column THEN END;
         BEGIN ALTER TABLE orders ADD COLUMN order_code VARCHAR(50); EXCEPTION WHEN duplicate_column THEN END;
-        -- Thêm cột order_type với giá trị mặc định là 'PURCHASE' thay vì 'PO'
         BEGIN ALTER TABLE orders ADD COLUMN order_type VARCHAR(20) DEFAULT 'PURCHASE'; EXCEPTION WHEN duplicate_column THEN END;
         BEGIN ALTER TABLE orders ADD COLUMN partner_id INTEGER; EXCEPTION WHEN duplicate_column THEN END;
         BEGIN ALTER TABLE orders ADD COLUMN total_amount NUMERIC(15,2) DEFAULT 0; EXCEPTION WHEN duplicate_column THEN END;
@@ -23,10 +23,14 @@ export async function POST(req: Request) {
       END $$;
     `);
 
+    // Gỡ bỏ ràng buộc NOT NULL
     await client.query(`ALTER TABLE orders ALTER COLUMN order_code DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL`).catch(() => {});
+    
+    // GỠ BỎ KHÓA NGOẠI (FOREIGN KEY) ĐANG RÀNG BUỘC VỚI BẢNG partners
+    await client.query(`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_partner_id_fkey`).catch(() => {});
 
-    // 2. XỬ LÝ LƯU ĐƠN HÀNG
+    // 2. NHẬN DỮ LIỆU TỪ GIAO DIỆN
     const body = await req.json();
     const { partner_id, order_date, expected_date, total_amount, items } = body;
 
@@ -36,20 +40,17 @@ export async function POST(req: Request) {
 
     await client.query('BEGIN');
 
-    // 3. TẠO MÃ ĐƠN TỰ ĐỘNG (Vẫn giữ tiền tố PO- để dễ nhìn: PO-261118-001)
+    // 3. TẠO MÃ ĐƠN TỰ ĐỘNG (VD: PO-261118-001)
     const dateStr = new Date(order_date).toISOString().slice(2, 10).replace(/-/g, '');
-    
-    // Tìm mã PO lớn nhất trong ngày. Chú ý: order_type = 'PURCHASE'
     const countRes = await client.query(`
       SELECT COUNT(*) FROM orders 
       WHERE order_type = 'PURCHASE' 
       AND (order_number LIKE $1 OR order_code LIKE $1)
     `, [`PO-${dateStr}-%`]);
-    
     const count = parseInt(countRes.rows[0].count) + 1;
     const orderNumber = `PO-${dateStr}-${count.toString().padStart(3, '0')}`;
 
-    // 4. LƯU BẢNG ORDERS: Lưu order_type = 'PURCHASE' để khớp với Constraint
+    // 4. LƯU BẢNG ORDERS
     const orderRes = await client.query(
       `INSERT INTO orders (order_number, order_code, order_type, partner_id, total_amount, status, order_date, expected_date) 
        VALUES ($1, $2, 'PURCHASE', $3, $4, 'PENDING', $5, $6) RETURNING id`,
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
 export async function GET() {
   const client = await pool.connect();
   try {
-    // Chỉ lấy các đơn hàng có order_type = 'PURCHASE'
+    // Chỉ lấy các đơn hàng có order_type = 'PURCHASE', thực hiện JOIN với bảng suppliers
     const result = await client.query(`
       SELECT o.*, COALESCE(o.order_number, o.order_code) as display_number, s.name as partner_name, s.code as partner_code
       FROM orders o
