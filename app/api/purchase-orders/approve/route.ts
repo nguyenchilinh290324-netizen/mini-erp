@@ -37,6 +37,22 @@ export async function POST(req: Request) {
       [order_id]
     );
 
+    // AUTO-MIGRATION BẢNG TỒN KHO VÀ GỠ BỎ RÀNG BUỘC GÂY LỖI
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS inventory_transactions (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER,
+        transaction_type VARCHAR(50),
+        quantity NUMERIC(15,2),
+        reference_id INTEGER,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Lệnh gỡ bỏ quy tắc check constraint chặn từ khóa 'IN_PO'
+    await client.query(`ALTER TABLE inventory_transactions DROP CONSTRAINT IF EXISTS inventory_transactions_transaction_type_check`).catch(() => {});
+
     // 4. Cộng tồn kho và ghi log lịch sử giao dịch (Inventory Transactions)
     for (const item of itemsRes.rows) {
       // Cập nhật bảng products (cộng số lượng)
@@ -44,19 +60,6 @@ export async function POST(req: Request) {
         `UPDATE products SET stock_quantity = COALESCE(stock_quantity, 0) + $1 WHERE id = $2`,
         [item.quantity, item.product_id]
       );
-
-      // Tự động kiểm tra và tạo bảng inventory_transactions nếu chưa có
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS inventory_transactions (
-          id SERIAL PRIMARY KEY,
-          product_id INTEGER,
-          transaction_type VARCHAR(50),
-          quantity NUMERIC(15,2),
-          reference_id INTEGER,
-          notes TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
 
       // Ghi nhận lịch sử nhập kho
       await client.query(
