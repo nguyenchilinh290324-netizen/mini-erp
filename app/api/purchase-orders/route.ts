@@ -60,11 +60,13 @@ export async function POST(req: Request) {
 
     // 5. LƯU BẢNG ORDER_ITEMS
     for (const item of items) {
-      const itemTotal = Number(item.quantity) * Number(item.unitPrice);
+      // Loại bỏ việc tính toán itemTotal ở đây vì cơ sở dữ liệu sẽ tự động tính
+      // const itemTotal = Number(item.quantity) * Number(item.unitPrice);
       
       await client.query(`
         DO $$ BEGIN
-          BEGIN ALTER TABLE order_items ADD COLUMN total_price NUMERIC(15,2) DEFAULT 0; EXCEPTION WHEN duplicate_column THEN END;
+          -- Xóa ALTER TABLE cho total_price vì nó đã được định nghĩa là generated column
+          -- BEGIN ALTER TABLE order_items ADD COLUMN total_price NUMERIC(15,2) DEFAULT 0; EXCEPTION WHEN duplicate_column THEN END;
           BEGIN ALTER TABLE order_items ADD COLUMN unit_price NUMERIC(15,2) DEFAULT 0; EXCEPTION WHEN duplicate_column THEN END;
           BEGIN ALTER TABLE order_items ADD COLUMN quantity NUMERIC(15,2) DEFAULT 1; EXCEPTION WHEN duplicate_column THEN END;
           BEGIN ALTER TABLE order_items ADD COLUMN product_id INTEGER; EXCEPTION WHEN duplicate_column THEN END;
@@ -72,10 +74,11 @@ export async function POST(req: Request) {
         END $$;
       `).catch(() => {});
 
+      // Loại bỏ total_price khỏi câu lệnh INSERT
       await client.query(
-        `INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) 
-         VALUES ($1, $2, $3, $4, $5)`,
-        [orderId, item.productId, item.quantity, item.unitPrice, itemTotal]
+        `INSERT INTO order_items (order_id, product_id, quantity, unit_price) 
+         VALUES ($1, $2, $3, $4)`,
+        [orderId, item.productId, item.quantity, item.unitPrice]
       );
     }
 
