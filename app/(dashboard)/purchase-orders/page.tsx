@@ -141,7 +141,7 @@ export default function PurchaseOrdersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
               <div>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Nhà Cung Cấp: <strong style={{ color: '#0f172a' }}>{selectedOrder.partner_name}</strong></p>
-                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Liên hệ: {selectedOrder.contact_person} - {selectedOrder.phone}</p>
+                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Liên hệ: {selectedOrder.contact_person || '-'} - {selectedOrder.phone || ''}</p>
               </div>
               <div>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Ngày lập: {new Date(selectedOrder.order_date).toLocaleDateString('vi-VN')}</p>
@@ -150,7 +150,7 @@ export default function PurchaseOrdersPage() {
             </div>
 
             <h3 style={{ fontSize: '16px', marginBottom: '12px', color: '#334155' }}>Danh sách Sản phẩm</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', marginBottom: '24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', marginBottom: '16px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
                   <th style={{ padding: '10px' }}>SKU</th>
@@ -161,23 +161,40 @@ export default function PurchaseOrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {selectedOrder.items?.map((item: any, idx: number) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px', fontWeight: 600 }}>{item.sku}</td>
-                    <td style={{ padding: '10px' }}>{item.product_name}</td>
-                    <td style={{ padding: '10px', textAlign: 'center' }}>{item.quantity} {item.unit}</td>
-                    <td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(Number(item.unit_price))}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#15803d' }}>{formatCurrency(Number(item.total_price))}</td>
-                  </tr>
-                ))}
+                {selectedOrder.items?.map((item: any, idx: number) => {
+                  // Đảm bảo tính toán thành tiền đúng cho từng sản phẩm
+                  const itemTotal = Number(item.quantity) * Number(item.unit_price);
+                  return (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>{item.sku}</td>
+                      <td style={{ padding: '10px' }}>{item.product_name}</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>{item.quantity} {item.unit}</td>
+                      <td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(Number(item.unit_price))}</td>
+                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#15803d' }}>{formatCurrency(itemTotal)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={4} style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 700, fontSize: '16px' }}>TỔNG CỘNG:</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 700, fontSize: '18px', color: '#dc2626' }}>{formatCurrency(Number(selectedOrder.total_amount))}</td>
-                </tr>
-              </tfoot>
             </table>
+
+            {/* BẢNG TỔNG KẾT CÓ VAT */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
+                      <span>Cộng tiền hàng:</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.total_amount) - Number(selectedOrder.vat_amount || 0))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
+                      <span>Thuế GTGT ({selectedOrder.vat_rate || 0}%):</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.vat_amount || 0))}</span>
+                  </div>
+                  <div style={{ borderBottom: '1px solid #e2e8f0', margin: '4px 0' }}></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Tổng cộng:</span>
+                      <span style={{ padding: '0', textAlign: 'right', fontWeight: 700, fontSize: '18px', color: '#dc2626' }}>{formatCurrency(Number(selectedOrder.total_amount))}</span>
+                  </div>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '2px solid #e2e8f0', paddingTop: '16px' }}>
               <button onClick={() => setSelectedOrder(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Đóng</button>
