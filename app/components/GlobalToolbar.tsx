@@ -127,6 +127,9 @@ const DICTIONARY: Record<string, string> = {
   'đã bán': '已售',
   'Đang tổng hợp dữ liệu báo cáo...': '正在汇总报表数据...',
   'Chưa có đơn hàng nào hoàn thành.': '暂无已完成的订单。',
+  'Phân Loại': '行业分类',
+  'Phân loại / Ngành nghề': '供应商分类 / 行业',
+  'Tìm theo Mã NCC, Tên công ty, Phân loại, SĐT...': '按供应商编号、公司名称、分类、电话搜索...',
 };
 
 const PLACEHOLDER_DICT: Record<string, string> = {
