@@ -2,15 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Thêm import này
 
 export default function PurchaseOrdersPage() {
+  const router = useRouter(); // Khởi tạo router
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
-  // State cho Modal chi tiết
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // State quản lý trạng thái đang duyệt để tránh bấm 2 lần
+  const [isApproving, setIsApproving] = useState(false); 
 
   const loadOrders = async () => {
     setLoading(true);
@@ -46,6 +50,35 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  // HÀM MỚI: Xử lý khi bấm nút Duyệt Đơn
+  const handleApprove = async () => {
+    if (!selectedOrder || !confirm('Bạn có chắc chắn muốn duyệt đơn PO này và nhập hàng vào kho?')) return;
+    
+    setIsApproving(true);
+    try {
+      // Gọi API duyệt đơn (API này bạn đã có sẵn từ các bước làm ERP trước đó)
+      const res = await fetch(`/api/purchase-orders/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: selectedOrder.id })
+      });
+
+      if (res.ok) {
+        alert('Duyệt đơn và Nhập kho thành công!');
+        setSelectedOrder(null); // Đóng popup
+        loadOrders(); // Tải lại danh sách PO
+      } else {
+        const data = await res.json();
+        alert('Lỗi: ' + (data.error || 'Không thể duyệt đơn'));
+      }
+    } catch (error) {
+      alert('Lỗi kết nối máy chủ');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  // ... (giữ nguyên các hàm getStatusBadge, formatCurrency, v.v.) ...
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING': return <span style={{ background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>⏳ CHỜ DUYỆT</span>;
@@ -79,6 +112,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       <div style={{ backgroundColor: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+        {/* ... (Giữ nguyên phần ô tìm kiếm và bảng hiển thị danh sách PO) ... */}
         <div style={{ marginBottom: '16px' }}>
           <input
             type="text"
@@ -133,6 +167,7 @@ export default function PurchaseOrdersPage() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '800px', borderRadius: '10px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
             
+            {/* ... (Giữ nguyên phần hiển thị chi tiết và bảng sản phẩm) ... */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: '#0f172a' }}>Chi tiết Đơn PO: <span style={{ color: '#0d56a6' }}>{selectedOrder.display_number}</span></h2>
               <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>&times;</button>
@@ -162,7 +197,6 @@ export default function PurchaseOrdersPage() {
               </thead>
               <tbody>
                 {selectedOrder.items?.map((item: any, idx: number) => {
-                  // Đảm bảo tính toán thành tiền đúng cho từng sản phẩm
                   const itemTotal = Number(item.quantity) * Number(item.unit_price);
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -177,7 +211,6 @@ export default function PurchaseOrdersPage() {
               </tbody>
             </table>
 
-            {/* BẢNG TỔNG KẾT CÓ VAT */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
               <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
@@ -200,8 +233,17 @@ export default function PurchaseOrdersPage() {
               <button onClick={() => setSelectedOrder(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Đóng</button>
               
               {selectedOrder.status === 'PENDING' && (
-                <button style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
-                  Duyệt Đơn (Approve)
+                <button 
+                  onClick={handleApprove} 
+                  disabled={isApproving}
+                  style={{ 
+                    padding: '10px 20px', borderRadius: '6px', border: 'none', 
+                    background: '#2563eb', color: '#fff', fontWeight: 600, 
+                    cursor: isApproving ? 'not-allowed' : 'pointer',
+                    opacity: isApproving ? 0.7 : 1
+                  }}
+                >
+                  {isApproving ? 'Đang duyệt...' : 'Duyệt Đơn (Approve)'}
                 </button>
               )}
             </div>
