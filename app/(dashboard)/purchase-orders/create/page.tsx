@@ -1,170 +1,241 @@
 'use client';
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function CreatePOPage() {
+  const router = useRouter();
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
-  // Trạng thái của Form
-  const [partnerId, setPartnerId] = useState('');
+  const [supplierId, setSupplierId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
-  const [deliveryDate, setDeliveryDate] = useState('');
+  const [expectedDate, setExpectedDate] = useState('');
   
-  // Trạng thái của giỏ hàng (các dòng sản phẩm)
-  const [items, setItems] = useState([{ product_id: '', quantity: 1, unit_price: 0 }]);
+  const [items, setItems] = useState([{ productId: '', quantity: 1, unitPrice: 0 }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tải danh sách Nhà cung cấp và Sản phẩm
+  // Load danh sách nhà cung cấp & sản phẩm từ API
   useEffect(() => {
     const fetchData = async () => {
-      const [resPartners, resProducts] = await Promise.all([
-        fetch('/api/partners'),
-        fetch('/api/products')
-      ]);
-      const jsonPartners = await resPartners.json();
-      const jsonProducts = await resProducts.json();
-      
-      // Chỉ lấy nhà cung cấp (SUPPLIER hoặc BOTH)
-      if (jsonPartners.success) {
-        setSuppliers(jsonPartners.data.filter((p: any) => p.type !== 'CUSTOMER'));
-      }
-      if (jsonProducts.success) {
-        setProducts(jsonProducts.data);
+      try {
+        const [supRes, prodRes] = await Promise.all([
+          fetch('/api/suppliers'),
+          fetch('/api/products')
+        ]);
+        
+        const supData = await supRes.json();
+        const prodData = await prodRes.json();
+        
+        if (Array.isArray(supData)) setSuppliers(supData);
+        if (Array.isArray(prodData)) setProducts(prodData);
+      } catch (err) {
+        console.error('Lỗi tải dữ liệu:', err);
       }
     };
     fetchData();
   }, []);
 
-  // Xử lý thay đổi dữ liệu trên từng dòng sản phẩm
-  const handleItemChange = (index: number, field: string, value: any) => {
+  const handleProductChange = (index: number, val: string) => {
     const newItems = [...items];
+    const selectedProd = products.find(p => p.id.toString() === val);
     
-    if (field === 'product_id') {
-      // Tự động điền giá vốn (Cost Price) khi chọn sản phẩm
-      const selectedProd = products.find(p => p.id.toString() === value);
-      newItems[index] = { 
-        ...newItems[index], 
-        product_id: value, 
-        unit_price: selectedProd ? Number(selectedProd.cost_price) : 0 
-      };
-    } else {
-      newItems[index] = { ...newItems[index], [field]: Number(value) };
+    newItems[index].productId = val;
+    // Tự động điền giá vốn (cost_price) khi chọn sản phẩm
+    if (selectedProd) {
+      newItems[index].unitPrice = Number(selectedProd.cost_price || 0);
     }
     setItems(newItems);
   };
 
-  // Thêm / Xoá dòng sản phẩm
-  const addItem = () => setItems([...items, { product_id: '', quantity: 1, unit_price: 0 }]);
-  const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
+  const handleItemChange = (index: number, field: string, val: string) => {
+    const newItems = [...items];
+    (newItems[index] as any)[field] = Number(val);
+    setItems(newItems);
+  };
 
-  // Tính tổng tiền đơn hàng
-  const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+  const addItem = () => setItems([...items, { productId: '', quantity: 1, unitPrice: 0 }]);
+  
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+  };
+
+  const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!partnerId) return alert('Vui lòng chọn Nhà cung cấp!');
-    if (items.some(item => !item.product_id)) return alert('Vui lòng chọn sản phẩm cho tất cả các dòng!');
+    if (!supplierId) {
+      alert('Vui lòng chọn nhà cung cấp!');
+      return;
+    }
     
+    const validItems = items.filter(i => i.productId && i.quantity > 0);
+    if (validItems.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 sản phẩm!');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/orders', {
+      const res = await fetch('/api/purchase-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partner_id: partnerId,
+          partner_id: supplierId,
           order_date: orderDate,
-          delivery_date: deliveryDate || null,
+          expected_date: expectedDate || null,
           total_amount: totalAmount,
-          items: items
+          items: validItems
         })
       });
-      const data = await res.json();
-      if (data.success) {
-        alert(`🎉 ${data.message} Mã đơn: ${data.order_code}`);
-        // Reset form hoặc chuyển hướng về trang danh sách PO
-        setPartnerId('');
-        setItems([{ product_id: '', quantity: 1, unit_price: 0 }]);
+
+      if (res.ok) {
+        alert('Tạo PO thành công!');
+        router.push('/purchase-orders'); // Chuyển về trang danh sách PO
       } else {
-        alert('Lỗi: ' + data.message);
+        const errorData = await res.json();
+        alert('Lỗi: ' + (errorData.error || 'Không thể tạo PO'));
       }
-    } catch (error) {
+    } catch (err) {
       alert('Lỗi kết nối máy chủ');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const formatCurrency = (val: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '1000px', margin: 'auto' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '20px' }}>Tạo Đơn Mua Hàng (PO)</h1>
+    <div style={{ maxWidth: '1000px', margin: '40px auto', fontFamily: 'Segoe UI, Arial, sans-serif' }}>
+      <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', marginBottom: '24px' }}>Tạo Đơn Mua Hàng (PO)</h1>
       
-      <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', padding: '32px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
         
         {/* THÔNG TIN CHUNG */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '32px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Nhà Cung Cấp (*):</label>
-            <select required value={partnerId} onChange={e => setPartnerId(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Nhà Cung Cấp (*):</label>
+            <select 
+              required
+              value={supplierId} 
+              onChange={e => setSupplierId(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+            >
               <option value="">-- Chọn Nhà Cung Cấp --</option>
               {suppliers.map(s => (
-                <option key={s.id} value={s.id}>{s.name} - {s.phone}</option>
+                <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
               ))}
             </select>
           </div>
+          
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Ngày Lập Đơn (*):</label>
-            <input required type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Ngày Lập Đơn (*):</label>
+            <input 
+              type="date" 
+              required
+              value={orderDate} 
+              onChange={e => setOrderDate(e.target.value)}
+              style={{ width: '100%', padding: '9px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+            />
           </div>
+
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Ngày Yêu Cầu Giao (Dự kiến):</label>
-            <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Ngày Yêu Cầu Giao (Dự kiến):</label>
+            <input 
+              type="date" 
+              value={expectedDate} 
+              onChange={e => setExpectedDate(e.target.value)}
+              style={{ width: '100%', padding: '9px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+            />
           </div>
         </div>
 
+        <div style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}></div>
+
         {/* CHI TIẾT SẢN PHẨM */}
-        <h3 style={{ borderBottom: '2px solid #e5e7eb', paddingBottom: '10px', marginBottom: '15px' }}>Chi Tiết Hàng Hoá</h3>
+        <div style={{ marginBottom: '12px', fontWeight: 600, color: '#334155' }}>Chi Tiết Hàng Hoá</div>
         
         {items.map((item, index) => (
-          <div key={index} style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
-            <div style={{ flex: 3 }}>
-              <select required value={item.product_id} onChange={e => handleItemChange(index, 'product_id', e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }}>
+          <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ flex: '2' }}>
+              <select 
+                value={item.productId} 
+                onChange={e => handleProductChange(index, e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+              >
                 <option value="">-- Chọn sản phẩm --</option>
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>
+                  <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>
                 ))}
               </select>
             </div>
             
-            <div style={{ flex: 1 }}>
-              <input required type="number" min="1" placeholder="SL" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div style={{ flex: '1' }}>
+              <input 
+                type="number" 
+                min="1"
+                placeholder="Số lượng"
+                value={item.quantity} 
+                onChange={e => handleItemChange(index, 'quantity', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                title="Số lượng nhập"
+              />
             </div>
             
-            <div style={{ flex: 1 }}>
-              <input required type="number" placeholder="Đơn giá" value={item.unit_price} onChange={e => handleItemChange(index, 'unit_price', e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px' }} />
+            <div style={{ flex: '1' }}>
+              <input 
+                type="number" 
+                min="0"
+                placeholder="Đơn giá"
+                value={item.unitPrice} 
+                onChange={e => handleItemChange(index, 'unitPrice', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                title="Đơn giá nhập"
+              />
+            </div>
+
+            <div style={{ flex: '1', textAlign: 'right', fontWeight: 700, color: '#15803d' }}>
+              {formatCurrency(item.quantity * item.unitPrice)}
             </div>
             
-            <div style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', color: '#166534' }}>
-              {new Intl.NumberFormat('vi-VN').format(item.quantity * item.unit_price)} đ
+            <div>
+              <button 
+                type="button" 
+                onClick={() => removeItem(index)}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', padding: '10px' }}
+                disabled={items.length === 1}
+              >
+                Xoá
+              </button>
             </div>
-            
-            <button type="button" onClick={() => removeItem(index)} disabled={items.length === 1} style={{ padding: '8px 12px', color: 'red', border: 'none', background: 'none', cursor: items.length > 1 ? 'pointer' : 'not-allowed' }}>
-              Xoá
-            </button>
           </div>
         ))}
-        
-        <button type="button" onClick={addItem} style={{ padding: '10px 15px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', marginBottom: '20px' }}>
+
+        <button 
+          type="button" 
+          onClick={addItem}
+          style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#334155', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+        >
           + Thêm Dòng Sản Phẩm
         </button>
 
-        {/* TỔNG KẾT & SUBMIT */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
-          <div style={{ fontSize: '20px' }}>
-            Tổng cộng: <strong style={{ color: '#b91c1c' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)}</strong>
+        <div style={{ borderBottom: '1px solid #e2e8f0', margin: '32px 0' }}></div>
+
+        {/* TỔNG TIỀN & XÁC NHẬN */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
+            Tổng cộng: <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '22px' }}>{formatCurrency(totalAmount)}</span>
           </div>
           
-          <button type="submit" disabled={isSubmitting} style={{ padding: '15px 30px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', fontSize: '16px', fontWeight: 'bold', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
-            {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận & Tạo Đơn (PO)'}
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            style={{ 
+              backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: '6px', fontWeight: 700, fontSize: '15px', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 
+            }}
+          >
+            {isSubmitting ? 'Đang tạo...' : 'Xác Nhận & Tạo Đơn (PO)'}
           </button>
         </div>
       </form>
