@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Component Ô Tìm kiếm thông minh (Searchable Select) tự viết
+// ... (Giữ nguyên Component SearchableSelect như trước) ...
 const SearchableSelect = ({ options, value, onChange, placeholder }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,6 +76,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder }: any) => {
   );
 };
 
+
 export default function CreatePOPage() {
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -84,6 +85,9 @@ export default function CreatePOPage() {
   const [supplierId, setSupplierId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [expectedDate, setExpectedDate] = useState('');
+  
+  // State mới cho VAT
+  const [vatRate, setVatRate] = useState<number>(0); 
   
   const [items, setItems] = useState([{ productId: '', quantity: 1, unitPrice: 0 }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,7 +112,6 @@ export default function CreatePOPage() {
     fetchData();
   }, []);
 
-  // Chuyển đổi mảng nhà cung cấp & sản phẩm cho Component Tìm kiếm
   const supplierOptions = suppliers.map(s => ({ id: s.id, label: `${s.code} - ${s.name}` }));
   const productOptions = products.map(p => ({ id: p.id, label: `${p.sku} - ${p.name}` }));
 
@@ -132,7 +135,10 @@ export default function CreatePOPage() {
   const addItem = () => setItems([...items, { productId: '', quantity: 1, unitPrice: 0 }]);
   const removeItem = (index: number) => setItems(items.filter((_, i) => i !== index));
 
-  const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  // Tính toán Tiền hàng, VAT và Tổng cộng
+  const subTotalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  const vatAmount = subTotalAmount * (vatRate / 100);
+  const totalAmount = subTotalAmount + vatAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +157,8 @@ export default function CreatePOPage() {
           order_date: orderDate,
           expected_date: expectedDate || null,
           total_amount: totalAmount,
+          vat_rate: vatRate,
+          vat_amount: vatAmount,
           items: validItems
         })
       });
@@ -177,7 +185,6 @@ export default function CreatePOPage() {
       
       <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', padding: '32px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
         
-        {/* THÔNG TIN CHUNG */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '20px', marginBottom: '32px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Nhà Cung Cấp (*):</label>
@@ -208,7 +215,6 @@ export default function CreatePOPage() {
 
         <div style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}></div>
 
-        {/* CHI TIẾT SẢN PHẨM */}
         <div style={{ marginBottom: '16px', fontWeight: 600, color: '#334155' }}>Chi Tiết Hàng Hoá</div>
         
         {items.map((item, index) => (
@@ -260,14 +266,43 @@ export default function CreatePOPage() {
           + Thêm Dòng Sản Phẩm
         </button>
 
-        <div style={{ borderBottom: '1px solid #e2e8f0', margin: '32px 0' }}></div>
+        <div style={{ borderBottom: '1px solid #e2e8f0', margin: '24px 0' }}></div>
 
-        {/* TỔNG TIỀN & XÁC NHẬN */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
-            Tổng cộng: <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '22px' }}>{formatCurrency(totalAmount)}</span>
-          </div>
-          
+        {/* KHU VỰC TỔNG KẾT & VAT */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+            <div style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
+                    <span>Cộng tiền hàng:</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(subTotalAmount)}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Thuế GTGT (VAT):</span>
+                        <select 
+                            value={vatRate} 
+                            onChange={(e) => setVatRate(Number(e.target.value))}
+                            style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+                        >
+                            <option value={0}>0%</option>
+                            <option value={8}>8%</option>
+                            <option value={10}>10%</option>
+                        </select>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(vatAmount)}</span>
+                </div>
+
+                <div style={{ borderBottom: '1px solid #e2e8f0' }}></div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>Tổng cộng:</span>
+                    <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '22px' }}>{formatCurrency(totalAmount)}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button 
             type="submit" disabled={isSubmitting}
             style={{ 
