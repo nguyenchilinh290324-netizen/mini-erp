@@ -54,9 +54,9 @@ export default async function DashboardPage() {
     // 5. Danh sách sản phẩm hiển thị trực tiếp ngay trên trang chủ
     const productsRes = await client.query(`
       SELECT id, sku, name, COALESCE(name_zh, '') as name_zh, COALESCE(specification, '') as specification, unit, cost_price, sell_price, stock_quantity 
-FROM products 
-ORDER BY id DESC 
-LIMIT 15
+      FROM products 
+      ORDER BY id DESC 
+      LIMIT 15
     `);
     const allProducts = productsRes.rows;
 
@@ -66,7 +66,7 @@ LIMIT 15
       { name: '🏭 Quản lý Kho hàng', desc: 'Tồn kho & Xuất nhập tồn', href: '/inventory', bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' },
       { name: '🔄 Lịch sử Giao dịch Kho', desc: 'Thẻ kho & Kiểm kê', href: '/inventory/transactions', bg: '#ecfdf5', border: '#a7f3d0', text: '#047857' },
       { name: '🛒 Đơn Bán hàng (Sales)', desc: 'Tạo đơn & Xuất hàng', href: '/sales-orders/create', bg: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
-      { name: '📥 Đơn Mua hàng (PO)', desc: 'Nhập hàng từ NCC', href: '/purchase-orders/create', bg: '#fefce8', border: '#fef08a', text: '#a16207' },
+      { name: '📥 Đơn Mua hàng (PO)', desc: 'Nhập hàng từ NCC', href: '/purchase-orders', bg: '#fefce8', border: '#fef08a', text: '#a16207' },
       { name: '👥 Khách hàng', desc: 'Thông tin & lịch sử mua', href: '/customers', bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce' },
       { name: '🤝 Nhà cung cấp & Đối tác', desc: 'Danh bạ nhà cung ứng', href: '/suppliers', bg: '#f5f3ff', border: '#ddd6fe', text: '#6d28d9' },
       { name: '💰 Quản lý Công nợ', desc: 'Phải thu (AR) & Phải trả (AP)', href: '/debts', bg: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
@@ -86,7 +86,7 @@ LIMIT 15
           <LogoutButton />
         </div>
 
-        {/* BẢNG ĐIỀU KHIỂN TRUNG TÂM: TẤT CẢ CÁC TRANG CHỨC NĂNG NẰM TẠI ĐÂY */}
+        {/* BẢNG ĐIỀU KHIỂN TRUNG TÂM */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px 24px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1f2937', marginTop: 0, marginBottom: '16px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
             🧭 DANH MỤC TẤT CẢ PHÂN HỆ (Chọn để truy cập nhanh)
@@ -162,6 +162,8 @@ LIMIT 15
                     <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px', fontWeight: 600, color: '#0d56a6' }}>{item.sku}</td>
                       <td style={{ padding: '12px', color: '#1e293b', fontWeight: 500 }}>{item.name}</td>
+                      <td style={{ padding: '12px', color: '#64748b' }}>{item.name_zh || '-'}</td>
+                      <td style={{ padding: '12px', color: '#64748b' }}>{item.specification || '-'}</td>
                       <td style={{ padding: '12px', color: '#64748b' }}>{item.unit || 'Cái'}</td>
                       <td style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>{formatCurrency(item.cost_price || 0)}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatCurrency(item.sell_price || 0)}</td>
@@ -181,7 +183,7 @@ LIMIT 15
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
                       Chưa có sản phẩm nào trong kho. Hãy bấm vào nút "+ Thêm / Chỉnh sửa Sản phẩm" để tạo mới.
                     </td>
                   </tr>
