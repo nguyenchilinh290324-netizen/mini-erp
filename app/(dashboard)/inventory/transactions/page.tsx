@@ -1,81 +1,122 @@
-'use client';
+import { pool } from '@/lib/db';
+import { Metadata } from 'next';
 
-import { useState, useEffect } from 'react';
+export const metadata: Metadata = {
+  title: 'Lịch sử Xuất/Nhập kho | Mini-ERP',
+};
 
-export default function InventoryTransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// Khai báo type cho dòng dữ liệu trả về từ DB
+interface InventoryTransaction {
+  id: string;
+  created_at: Date;
+  transaction_type: string;
+  quantity: number;
+  notes: string;
+  reference_code: string | null; // Đã đổi từ reference_id sang reference_code để lấy mã PO/SO
+  sku: string;
+  name: string;
+}
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const res = await fetch('/api/inventory-transactions');
-        if (res.ok) {
-          const data = await res.json();
-          setTransactions(data);
-        }
-      } catch (error) {
-        console.error('Lỗi tải dữ liệu lịch sử:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTransactions();
-  }, []);
+export default async function InventoryTransactionsPage() {
+  // Thực thi truy vấn lấy lịch sử kho, JOIN với bảng products (lấy SKU & Name)
+  // và JOIN với bảng orders (lấy Mã đơn PO/SO thay vì chỉ ID)
+  const result = await pool.query(`
+    SELECT 
+      it.id,
+      it.created_at,
+      it.transaction_type,
+      it.quantity,
+      it.notes,
+      COALESCE(o.order_number, o.order_code) AS reference_code,
+      p.sku,
+      p.name
+    FROM inventory_transactions it
+    LEFT JOIN products p ON it.product_id = p.id
+    LEFT JOIN orders o ON it.reference_id = o.id
+    ORDER BY it.created_at DESC
+    LIMIT 100
+  `);
 
-  const getTransactionTypeLabel = (type: string) => {
-    if (type.includes('IN_PO') || type === 'IN') {
-      return <span style={{ backgroundColor: '#dcfce3', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>📥 NHẬP KHO</span>;
-    }
-    if (type.includes('OUT_SO') || type === 'OUT') {
-      return <span style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>📤 XUẤT KHO</span>;
-    }
-    return <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>{type}</span>;
-  };
+  const transactions: InventoryTransaction[] = result.rows;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', fontFamily: 'Segoe UI, Arial, sans-serif' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', margin: 0 }}>🔄 Lịch sử Xuất/Nhập kho</h1>
-        <p style={{ color: '#64748b', marginTop: '4px', fontSize: '14px' }}>Theo dõi biến động số lượng vật tư, thiết bị</p>
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Lịch sử Xuất/Nhập kho</h1>
+          <p className="text-gray-500 mt-1">Theo dõi biến động số lượng vật tư, thiết bị</p>
+        </div>
       </div>
 
-      <div style={{ backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600 }}>Thời gian</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600 }}>Sản phẩm (SKU - Tên)</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600 }}>Loại GD</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600, textAlign: 'center' }}>Số lượng</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600 }}>Mã tham chiếu</th>
-              <th style={{ padding: '16px 24px', color: '#475569', fontWeight: 600 }}>Ghi chú</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>Đang tải dữ liệu...</td></tr>
-            ) : transactions.length > 0 ? (
-              transactions.map((t) => (
-                <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '16px 24px' }}>{new Date(t.created_at).toLocaleString('vi-VN')}</td>
-                  <td style={{ padding: '16px 24px', fontWeight: 500, color: '#0f172a' }}>
-                    <span style={{ color: '#0d56a6', fontWeight: 700 }}>{t.sku}</span><br/>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>{t.product_name}</span>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-600">
+                <th className="p-4 font-medium whitespace-nowrap">Thời gian</th>
+                <th className="p-4 font-medium">Sản phẩm (SKU - Tên)</th>
+                <th className="p-4 font-medium text-center">Loại GD</th>
+                <th className="p-4 font-medium text-right">Số lượng</th>
+                <th className="p-4 font-medium text-center">Mã tham chiếu</th>
+                <th className="p-4 font-medium">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                    Chưa có giao dịch xuất/nhập kho nào.
                   </td>
-                  <td style={{ padding: '16px 24px' }}>{getTransactionTypeLabel(t.transaction_type)}</td>
-                  <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 700, fontSize: '16px', color: t.transaction_type.includes('IN') ? '#16a34a' : '#dc2626' }}>
-                    {t.transaction_type.includes('IN') ? '+' : '-'}{t.quantity}
-                  </td>
-                  <td style={{ padding: '16px 24px', fontWeight: 600, color: '#334155' }}>{t.reference_code || '-'}</td>
-                  <td style={{ padding: '16px 24px', color: '#64748b', fontSize: '13px' }}>{t.notes}</td>
                 </tr>
-              ))
-            ) : (
-              <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>Chưa có giao dịch xuất/nhập kho nào.</td></tr>
-            )}
-          </tbody>
-        </table>
+              ) : (
+                transactions.map((txn) => {
+                  const isIncoming = txn.transaction_type.includes('IN');
+                  return (
+                    <tr key={txn.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-4 text-gray-600 whitespace-nowrap">
+                        {new Date(txn.created_at).toLocaleString('vi-VN', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-gray-800 text-blue-700">{txn.sku}</div>
+                        <div className="text-gray-500 text-xs truncate max-w-[250px]">{txn.name}</div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span
+                          className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                            isIncoming
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {isIncoming ? '📥 NHẬP KHO' : '📤 XUẤT KHO'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-bold text-base">
+                        <span className={isIncoming ? 'text-green-600' : 'text-red-600'}>
+                          {isIncoming ? '+' : '-'}{txn.quantity}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-mono font-semibold border border-gray-200">
+                          {txn.reference_code || '-'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-600 text-sm max-w-[200px]">
+                        {txn.notes}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
