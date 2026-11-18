@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Thêm import này
+import { useRouter } from 'next/navigation';
 
 export default function PurchaseOrdersPage() {
-  const router = useRouter(); // Khởi tạo router
+  const router = useRouter(); 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -13,7 +13,6 @@ export default function PurchaseOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   
-  // State quản lý trạng thái đang duyệt để tránh bấm 2 lần
   const [isApproving, setIsApproving] = useState(false); 
 
   const loadOrders = async () => {
@@ -50,13 +49,11 @@ export default function PurchaseOrdersPage() {
     }
   };
 
-  // HÀM MỚI: Xử lý khi bấm nút Duyệt Đơn
   const handleApprove = async () => {
     if (!selectedOrder || !confirm('Bạn có chắc chắn muốn duyệt đơn PO này và nhập hàng vào kho?')) return;
     
     setIsApproving(true);
     try {
-      // Gọi API duyệt đơn (API này bạn đã có sẵn từ các bước làm ERP trước đó)
       const res = await fetch(`/api/purchase-orders/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,8 +62,8 @@ export default function PurchaseOrdersPage() {
 
       if (res.ok) {
         alert('Duyệt đơn và Nhập kho thành công!');
-        setSelectedOrder(null); // Đóng popup
-        loadOrders(); // Tải lại danh sách PO
+        setSelectedOrder(null); 
+        loadOrders(); 
       } else {
         const data = await res.json();
         alert('Lỗi: ' + (data.error || 'Không thể duyệt đơn'));
@@ -78,7 +75,6 @@ export default function PurchaseOrdersPage() {
     }
   };
 
-  // ... (giữ nguyên các hàm getStatusBadge, formatCurrency, v.v.) ...
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING': return <span style={{ background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>⏳ CHỜ DUYỆT</span>;
@@ -112,7 +108,6 @@ export default function PurchaseOrdersPage() {
       </div>
 
       <div style={{ backgroundColor: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-        {/* ... (Giữ nguyên phần ô tìm kiếm và bảng hiển thị danh sách PO) ... */}
         <div style={{ marginBottom: '16px' }}>
           <input
             type="text"
@@ -145,14 +140,28 @@ export default function PurchaseOrdersPage() {
                   <td style={{ padding: '12px' }}>{new Date(o.order_date).toLocaleDateString('vi-VN')}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#dc2626' }}>{formatCurrency(Number(o.total_amount))}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(o.status)}</td>
+                  
+                  {/* ĐÃ TÍCH HỢP NÚT SỬA VÀO CỘT THAO TÁC */}
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button 
-                      onClick={() => openDetail(o.id)}
-                      style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
-                    >
-                      Xem chi tiết
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => openDetail(o.id)}
+                        style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                      >
+                        Xem
+                      </button>
+                      
+                      {o.status === 'PENDING' && (
+                        <Link 
+                          href={`/purchase-orders/${o.id}/edit`}
+                          style={{ background: '#eab308', color: '#fff', border: '1px solid #ca8a04', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}
+                        >
+                          Sửa
+                        </Link>
+                      )}
+                    </div>
                   </td>
+
                 </tr>
               ))
             ) : (
@@ -167,7 +176,6 @@ export default function PurchaseOrdersPage() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '800px', borderRadius: '10px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
             
-            {/* ... (Giữ nguyên phần hiển thị chi tiết và bảng sản phẩm) ... */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: '#0f172a' }}>Chi tiết Đơn PO: <span style={{ color: '#0d56a6' }}>{selectedOrder.display_number}</span></h2>
               <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>&times;</button>
