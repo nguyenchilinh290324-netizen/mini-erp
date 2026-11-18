@@ -7,12 +7,10 @@ export default function PrintQuotationPage() {
   const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
-    // Tải dữ liệu đơn hàng
     fetch(`/api/sales-orders/${params.id}`)
       .then(res => res.json())
       .then(data => {
         setOrder(data);
-        // Tự động mở hộp thoại In/Lưu PDF sau 1 giây khi render xong
         setTimeout(() => window.print(), 1000);
       });
   }, [params.id]);
@@ -25,33 +23,35 @@ export default function PrintQuotationPage() {
     <div style={{ backgroundColor: '#e5e7eb', minHeight: '100vh', padding: '20px 0' }}>
         <div className="print-container" style={{ backgroundColor: '#fff', padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: '"Times New Roman", Times, serif', color: '#000', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
             
-            {/* Cấu hình CSS cho máy in A4 */}
+            {/* THÊM THUỘC TÍNH ẨN HEADER/FOOTER (Địa chỉ web, Ngày giờ) */}
             <style dangerouslySetInnerHTML={{__html: `
             @media print {
                 body { background: white !important; margin: 0; padding: 0; }
                 .print-container { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
-                @page { size: A4; margin: 15mm; }
+                
+                /* Ẩn lề trang in của trình duyệt */
+                @page { size: A4; margin: 10mm; } 
+                
                 .no-print { display: none !important; }
             }
             `}} />
             
-            {/* Header Công ty KMĐ */}
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '24px' }}>
             <div>
-                <h2 style={{ margin: 0, fontSize: '18px', textTransform: 'uppercase', color: '#0d56a6' }}>CÔNG TY TNHH CÔNG NGHỆ KIM MINH ĐÀI VIỆT NAM</h2>
-                <p style={{ margin: '4px 0 0', fontSize: '13px' }}>Khu Công nghiệp Thương mại và Dịch vụ VSIP Bắc Ninh II, Xã Tam Giang, Huyện Yên Phong, Bắc Ninh</p>
-                <p style={{ margin: '4px 0 0', fontSize: '13px' }}>SĐT: 0898997570 - Người phụ trách: Linh</p>
+                {/* ĐÃ CẬP NHẬT THÔNG TIN CÔNG TY KIM MINH ĐÀI CHÍNH XÁC */}
+                <h2 style={{ margin: 0, fontSize: '18px', textTransform: 'uppercase', color: '#0d56a6' }}>CÔNG TY TNHH CÔNG NGHỆ KIM MINH ĐÀI VN</h2>
+                <p style={{ margin: '4px 0 0', fontSize: '13px' }}><strong>Địa chỉ:</strong> Tổ 1 Khu Phố Mỹ Khoan, Phường Nhơn Trạch, Thành Phố Đồng Nai, Việt Nam</p>
+                <p style={{ margin: '4px 0 0', fontSize: '13px' }}><strong>Mã số thuế:</strong> 3603954971</p>
+                <p style={{ margin: '4px 0 0', fontSize: '13px' }}><strong>SĐT:</strong> 0933935329 / 0373489614 - Người báo giá: Nguyễn Chí Linh</p>
             </div>
             </div>
 
-            {/* Tiêu đề Báo giá */}
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1 style={{ margin: 0, fontSize: '26px' }}>BẢNG BÁO GIÁ</h1>
             <h3 style={{ margin: '4px 0 0', fontSize: '18px', fontWeight: 'normal' }}>报价单 / QUOTATION</h3>
             <p style={{ margin: '8px 0 0', fontSize: '14px', fontStyle: 'italic' }}>Mã Số (Ref No): <strong>{order.display_number}</strong></p>
             </div>
 
-            {/* Thông tin Khách hàng */}
             <div style={{ marginBottom: '24px', fontSize: '14px', lineHeight: '1.6' }}>
             <p style={{ margin: 0 }}><strong>Kính gửi (To):</strong> {order.partner_name}</p>
             <p style={{ margin: 0 }}><strong>Người liên hệ (Attn):</strong> {order.contact_person || '-'} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>SĐT (Tel):</strong> {order.phone || '-'}</p>
@@ -59,7 +59,6 @@ export default function PrintQuotationPage() {
             <p style={{ margin: 0 }}><strong>Ghi chú (Notes):</strong> {order.notes || '-'}</p>
             </div>
 
-            {/* Bảng chi tiết hàng hóa */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', fontSize: '14px' }}>
             <thead>
                 <tr style={{ backgroundColor: '#f3f4f6' }}>
@@ -88,7 +87,6 @@ export default function PrintQuotationPage() {
             </tbody>
             </table>
 
-            {/* Tổng tiền */}
             <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '40px', fontSize: '14px' }}>
                 <table style={{ width: '320px', borderCollapse: 'collapse' }}>
                 <tbody>
@@ -108,7 +106,6 @@ export default function PrintQuotationPage() {
                 </table>
             </div>
 
-            {/* Chữ ký */}
             <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center', marginTop: '50px', fontSize: '14px' }}>
             <div style={{ width: '40%' }}>
                 <strong>ĐẠI DIỆN KHÁCH HÀNG</strong><br/>
@@ -122,7 +119,6 @@ export default function PrintQuotationPage() {
             </div>
             </div>
 
-            {/* Các nút hành động (Sẽ bị ẩn khi in ra PDF nhờ class no-print) */}
             <div className="no-print" style={{ textAlign: 'center', marginTop: '80px', borderTop: '1px dashed #cbd5e1', paddingTop: '20px' }}>
             <button onClick={() => window.print()} style={{ padding: '10px 24px', background: '#0d56a6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>🖨️ In / Lưu PDF</button>
             <button onClick={() => window.close()} style={{ padding: '10px 24px', background: '#e2e8f0', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', marginLeft: '12px', fontWeight: 600 }}>Đóng Tab Này</button>
