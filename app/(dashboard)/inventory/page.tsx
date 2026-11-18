@@ -19,6 +19,9 @@ export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  // State quản lý việc Ẩn/Hiện Giá Vốn (Mặc định là Ẩn)
+  const [showPrice, setShowPrice] = useState(false);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -80,9 +83,21 @@ export default function InventoryPage() {
           <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', marginTop: '8px' }}>{totalStock} <span style={{ fontSize: '14px', fontWeight: 400, color: '#64748b' }}>sp</span></div>
         </div>
 
+        {/* THẺ TỔNG GIÁ TRỊ CÓ NÚT ẨN/HIỆN GIÁ */}
         <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #8b5cf6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>TỔNG GIÁ TRỊ KHO (Theo giá vốn)</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', marginTop: '8px' }}>{formatCurrency(totalValue)}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: '#6d28d9' }}>
+              {showPrice ? formatCurrency(totalValue) : '****** đ'}
+            </div>
+            <button 
+              onClick={() => setShowPrice(!showPrice)} 
+              style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+              title={showPrice ? "Ẩn giá" : "Hiện giá"}
+            >
+              {showPrice ? '👁️' : '👁️‍🗨️'}
+            </button>
+          </div>
         </div>
 
         <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #ef4444', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -124,18 +139,26 @@ export default function InventoryPage() {
                 filtered.map(item => (
                   <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px', fontWeight: 600, color: '#0d56a6' }}>{item.sku}</td>
+                    
+                    {/* CỘT ẢNH & TÊN: ĐÃ BỌC THẺ LINK ĐỂ BẤM VÀO SẼ SANG TRANG CHI TIẾT */}
                     <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {item.image_url && <img src={item.image_url} alt="img" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e2e8f0' }} />}
+                      <Link href={`/products/${item.id}/detail`} style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', cursor: 'pointer' }}>
+                        <img src={item.image_url || '/placeholder.png'} alt="img" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
                         <div>
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.name}</div>
                           {item.name_zh && <div style={{ fontSize: '12px', color: '#64748b' }}>{item.name_zh}</div>}
                         </div>
-                      </div>
+                      </Link>
                     </td>
+
                     <td style={{ padding: '12px', color: '#475569' }}>{item.specification || '-'}</td>
                     <td style={{ padding: '12px', textAlign: 'center', color: '#475569' }}>{item.unit}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>{formatCurrency(item.cost_price)}</td>
+                    
+                    {/* CỘT ĐƠN GIÁ (BỊ ẨN THEO STATE) */}
+                    <td style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>
+                      {showPrice ? formatCurrency(item.cost_price) : '*** đ'}
+                    </td>
+                    
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <span style={{
                         padding: '4px 10px',
@@ -147,8 +170,10 @@ export default function InventoryPage() {
                         {item.stock_quantity}
                       </span>
                     </td>
+                    
+                    {/* CỘT TỔNG TRỊ GIÁ (BỊ ẨN THEO STATE) */}
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#334155' }}>
-                      {formatCurrency(Number(item.cost_price) * Number(item.stock_quantity))}
+                      {showPrice ? formatCurrency(Number(item.cost_price) * Number(item.stock_quantity)) : '*** đ'}
                     </td>
                   </tr>
                 ))
