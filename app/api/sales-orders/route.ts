@@ -21,14 +21,18 @@ export async function POST(req: Request) {
         BEGIN ALTER TABLE orders ADD COLUMN status VARCHAR(50) DEFAULT 'PENDING'; EXCEPTION WHEN duplicate_column THEN END;
         BEGIN ALTER TABLE orders ADD COLUMN order_date DATE; EXCEPTION WHEN duplicate_column THEN END;
         BEGIN ALTER TABLE orders ADD COLUMN expected_date DATE; EXCEPTION WHEN duplicate_column THEN END;
-        BEGIN ALTER TABLE orders ADD COLUMN notes TEXT; EXCEPTION WHEN duplicate_column THEN END; -- Cột Ghi chú
+        BEGIN ALTER TABLE orders ADD COLUMN notes TEXT; EXCEPTION WHEN duplicate_column THEN END;
       END $$;
     `);
 
-    // Gỡ bỏ các ràng buộc có thể gây lỗi
+    // GỠ BỎ CÁC RÀNG BUỘC KHẮT KHE GÂY LỖI KHI NHẬP TAY MÃ SO
     await client.query(`ALTER TABLE orders ALTER COLUMN order_code DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL`).catch(() => {});
     await client.query(`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_partner_id_fkey`).catch(() => {});
+    
+    // ĐÂY LÀ LỆNH MỚI: Gỡ bỏ bắt buộc Unique (Không được trùng lặp) của cột order_code và order_number
+    await client.query(`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_code_key`).catch(() => {});
+    await client.query(`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_number_key`).catch(() => {});
 
     // 2. NHẬN DỮ LIỆU TỪ GIAO DIỆN
     const body = await req.json();
@@ -94,7 +98,6 @@ export async function POST(req: Request) {
 export async function GET() {
   const client = await pool.connect();
   try {
-    // Chỉ lấy các đơn hàng có order_type = 'SALES', liên kết với bảng customers
     const result = await client.query(`
       SELECT o.*, COALESCE(o.order_number, o.order_code) as display_number, c.name as partner_name, c.code as partner_code
       FROM orders o
