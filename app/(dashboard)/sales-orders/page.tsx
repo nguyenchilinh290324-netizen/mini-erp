@@ -225,9 +225,23 @@ export default function SalesOrdersPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '2px solid #e2e8f0', paddingTop: '16px' }}>
+              
+              {/* NÚT IN BÁO GIÁ VỪA ĐƯỢC THÊM VÀO ĐÂY */}
+              <a 
+                href={`/sales-orders/${selectedOrder.id}/print`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  padding: '10px 20px', borderRadius: '6px', border: '1px solid #0d56a6', 
+                  background: '#f0f9ff', color: '#0d56a6', fontWeight: 600, 
+                  cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center'
+                }}
+              >
+                🖨️ In Báo Giá (PDF)
+              </a>
+
               <button onClick={() => setSelectedOrder(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Đóng</button>
               
-              {/* ĐÃ TÍCH HỢP HÀM DUYỆT VÀO NÚT NÀY */}
               {selectedOrder.status === 'PENDING' && (
                 <button 
                   onClick={handleApprove} 
