@@ -1,36 +1,34 @@
 import { pool } from '@/lib/db';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const client = await pool.connect();
   let product = null;
+  const client = await pool.connect();
 
   try {
-    // Truy vấn lấy thông tin sản phẩm và JOIN với bảng suppliers/partners để lấy tên NCC
-    const res = await client.query(`
-      SELECT p.*, COALESCE(s.name, 'Chưa cập nhật NCC') as supplier_name 
-      FROM products p
-      LEFT JOIN suppliers s ON p.supplier_id = s.id 
-      WHERE p.id = $1
-    `, [params.id]);
-
-    if (res.rows.length === 0) return notFound();
-    product = res.rows[0];
-
+    // Truy vấn chỉ lấy từ bảng products, không JOIN để tránh lỗi sập trang
+    const res = await client.query(`SELECT * FROM products WHERE id = $1`, [params.id]);
+    
+    if (res.rows.length > 0) {
+      product = res.rows[0];
+    }
   } catch (error) {
     console.error('Lỗi tải chi tiết SP:', error);
   } finally {
     client.release();
   }
 
-  if (!product) return <div>Lỗi tải dữ liệu</div>;
+  if (!product) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <h2>Không tìm thấy sản phẩm hoặc lỗi kết nối.</h2>
+        <Link href="/inventory" style={{ color: '#0d56a6' }}>Quay lại trang Kho</Link>
+      </div>
+    );
+  }
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-
-  // Xử lý mảng hình ảnh (Nếu DB chưa có mảng ảnh, ta nhân bản ảnh chính ra làm 3 thumbnail tạm thời)
   const images = [
     product.image_url || '/placeholder.png',
     product.image_url || '/placeholder.png', 
@@ -88,10 +86,6 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           {/* CÁC THÔNG SỐ KỸ THUẬT */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
             <div>
-              <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#64748b' }}>Nhà Cung Cấp (供应商):</p>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{product.supplier_name}</p>
-            </div>
-            <div>
               <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#64748b' }}>Phân loại (Category):</p>
               <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{product.category || 'Vật tư chung'}</p>
             </div>
@@ -99,16 +93,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
               <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#64748b' }}>Quy cách / Tiêu chuẩn (规格型号):</p>
               <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{product.specifications || product.short_desc || 'Theo tiêu chuẩn NSX'}</p>
             </div>
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#64748b' }}>Trọng lượng / Kích thước:</p>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{product.weight || '--'}</p>
-            </div>
           </div>
 
           <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#334155' }}>Mô tả chi tiết (详细描述)</h3>
             <p style={{ margin: 0, fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>
-              {product.description || 'Chưa có mô tả chi tiết cho sản phẩm này. Đang chờ cập nhật từ nhà cung cấp.'}
+              {product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
             </p>
           </div>
 
