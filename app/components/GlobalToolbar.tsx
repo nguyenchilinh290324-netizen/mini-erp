@@ -159,6 +159,23 @@ const DICTIONARY: Record<string, string> = {
   '📝 ĐÃ DUYỆT / CHỜ NHẬP': '📝 已审批 / 待入库',
   '✅ ĐÃ NHẬP KHO': '✅ 已入库',
   '❌ ĐÃ HUỶ': '❌ 已取消',
+  '🛒 Quản lý Đơn Bán Hàng (SO)': '🛒 销售订单管理 (SO)',
+  'Quản lý xuất hàng, theo dõi đơn bán và doanh thu': '管理出库，追踪销售订单和营收',
+  '+ Tạo Đơn Bán Hàng (SO)': '+ 创建新销售单',
+  'Tra cứu Mã SO, Tên Khách hàng...': '按销售单号、客户名称搜索...',
+  'Mã Đơn SO': '销售单号',
+  'Khách Hàng': '客户',
+  'Chưa có Đơn bán hàng nào.': '暂无销售订单。',
+  'Chi tiết Đơn Bán (SO):': '销售订单详情:',
+  'Ghi chú:': '备注:',
+  '(Không có)': '(无)',
+  'Ngày giao (DK):': '预计交期:',
+  'Tên SP / Tên Tiếng Trung': '产品名称 / 中文名称',
+  'Đơn giá Bán': '销售单价',
+  'Tổng Thanh Toán:': '支付总额:',
+  '⏳ CHỜ DUYỆT / XUẤT': '⏳ 待审批 / 待出库',
+  '📝 ĐÃ DUYỆT / CHỜ GIAO': '📝 已审批 / 待发货',
+  '✅ ĐÃ GIAO / HOÀN THÀNH': '✅ 已发货 / 已完成',
 };
 
 const PLACEHOLDER_DICT: Record<string, string> = {

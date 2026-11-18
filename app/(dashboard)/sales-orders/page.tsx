@@ -11,7 +11,6 @@ export default function SalesOrdersPage() {
   const [search, setSearch] = useState('');
   
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   
   const loadOrders = async () => {
     setLoading(true);
@@ -31,7 +30,6 @@ export default function SalesOrdersPage() {
   }, []);
 
   const openDetail = async (id: number) => {
-    setLoadingDetail(true);
     try {
       const res = await fetch(`/api/sales-orders/${id}`);
       if (res.ok) {
@@ -42,8 +40,6 @@ export default function SalesOrdersPage() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoadingDetail(false);
     }
   };
 
@@ -112,13 +108,27 @@ export default function SalesOrdersPage() {
                   <td style={{ padding: '12px' }}>{new Date(o.order_date).toLocaleDateString('vi-VN')}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#ea580c' }}>{formatCurrency(Number(o.total_amount))}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(o.status)}</td>
+                  
+                  {/* CỘT THAO TÁC CÓ NÚT SỬA */}
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button 
-                      onClick={() => openDetail(o.id)}
-                      style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
-                    >
-                      Xem chi tiết
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => openDetail(o.id)}
+                        style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                      >
+                        Xem
+                      </button>
+                      
+                      {/* Chỉ hiện nút Sửa nếu đơn chưa giao */}
+                      {o.status === 'PENDING' && (
+                        <Link 
+                          href={`/sales-orders/${o.id}/edit`}
+                          style={{ background: '#eab308', color: '#fff', border: '1px solid #ca8a04', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}
+                        >
+                          Sửa
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -129,11 +139,10 @@ export default function SalesOrdersPage() {
         </table>
       </div>
 
-      {/* POPUP CHI TIẾT ĐƠN HÀNG */}
+      {/* POPUP CHI TIẾT */}
       {selectedOrder && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div style={{ backgroundColor: '#fff', width: '100%', maxWidth: '900px', borderRadius: '10px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
-            
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: '#0f172a' }}>Chi tiết Đơn Bán (SO): <span style={{ color: '#0d56a6' }}>{selectedOrder.display_number}</span></h2>
               <button onClick={() => setSelectedOrder(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>&times;</button>
@@ -143,18 +152,14 @@ export default function SalesOrdersPage() {
               <div>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Khách Hàng: <strong style={{ color: '#0f172a' }}>{selectedOrder.partner_name}</strong></p>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Liên hệ: {selectedOrder.contact_person || '-'} - {selectedOrder.phone || ''}</p>
-                <p style={{ margin: '0 0 0 0', fontSize: '14px', color: '#475569' }}>
-                  Ghi chú: <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>{selectedOrder.notes || '(Không có)'}</span>
-                </p>
+                <p style={{ margin: '0 0 0 0', fontSize: '14px', color: '#475569' }}>Ghi chú: <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>{selectedOrder.notes || '(Không có)'}</span></p>
               </div>
               <div>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Ngày lập: {new Date(selectedOrder.order_date).toLocaleDateString('vi-VN')}</p>
-                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Ngày giao (DK): {selectedOrder.expected_date ? new Date(selectedOrder.expected_date).toLocaleDateString('vi-VN') : '-'}</p>
-                <p style={{ margin: '0 0 0 0', fontSize: '14px', color: '#475569' }}>Trạng thái hiện tại: {getStatusBadge(selectedOrder.status)}</p>
+                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569' }}>Trạng thái hiện tại: {getStatusBadge(selectedOrder.status)}</p>
               </div>
             </div>
 
-            <h3 style={{ fontSize: '16px', marginBottom: '12px', color: '#334155' }}>Danh sách Sản phẩm</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', marginBottom: '16px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
@@ -172,10 +177,7 @@ export default function SalesOrdersPage() {
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px', fontWeight: 600 }}>{item.sku}</td>
-                      <td style={{ padding: '10px' }}>
-                        <div>{item.product_name}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{item.name_zh}</div>
-                      </td>
+                      <td style={{ padding: '10px' }}><div>{item.product_name}</div><div style={{ fontSize: '12px', color: '#64748b' }}>{item.name_zh}</div></td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>{item.unit || 'Cái'}</td>
                       <td style={{ padding: '10px', textAlign: 'center', fontWeight: 700 }}>{item.quantity}</td>
                       <td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(Number(item.unit_price))}</td>
@@ -188,40 +190,16 @@ export default function SalesOrdersPage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
               <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
-                      <span>Cộng tiền hàng:</span>
-                      <span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.total_amount) - Number(selectedOrder.vat_amount || 0))}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}>
-                      <span>Thuế GTGT ({selectedOrder.vat_rate || 0}%):</span>
-                      <span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.vat_amount || 0))}</span>
-                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}><span>Cộng tiền hàng:</span><span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.total_amount) - Number(selectedOrder.vat_amount || 0))}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#475569' }}><span>Thuế GTGT ({selectedOrder.vat_rate || 0}%):</span><span style={{ fontWeight: 600 }}>{formatCurrency(Number(selectedOrder.vat_amount || 0))}</span></div>
                   <div style={{ borderBottom: '1px solid #e2e8f0', margin: '4px 0' }}></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Tổng Thanh Toán:</span>
-                      <span style={{ padding: '0', textAlign: 'right', fontWeight: 700, fontSize: '20px', color: '#ea580c' }}>{formatCurrency(Number(selectedOrder.total_amount))}</span>
-                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Tổng Thanh Toán:</span><span style={{ padding: '0', textAlign: 'right', fontWeight: 700, fontSize: '20px', color: '#ea580c' }}>{formatCurrency(Number(selectedOrder.total_amount))}</span></div>
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '2px solid #e2e8f0', paddingTop: '16px' }}>
               <button onClick={() => setSelectedOrder(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Đóng</button>
-              
-              {/* Nút Xuất Kho - Tương tự như duyệt PO */}
-              {selectedOrder.status === 'PENDING' && (
-                <button 
-                  onClick={() => alert('Chức năng Duyệt & Xuất Kho đang phát triển (Cần trừ tồn kho)')}
-                  style={{ 
-                    padding: '10px 20px', borderRadius: '6px', border: 'none', 
-                    background: '#ea580c', color: '#fff', fontWeight: 600, 
-                    cursor: 'pointer'
-                  }}
-                >
-                  Duyệt Xuất Kho
-                </button>
-              )}
             </div>
-
           </div>
         </div>
       )}
