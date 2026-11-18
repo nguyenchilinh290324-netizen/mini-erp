@@ -12,6 +12,9 @@ export default function SalesOrdersPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
+  // State khóa nút tránh bấm 2 lần
+  const [isApproving, setIsApproving] = useState(false);
+
   const loadOrders = async () => {
     setLoading(true);
     try {
@@ -40,6 +43,33 @@ export default function SalesOrdersPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // HÀM MỚI: XỬ LÝ DUYỆT XUẤT KHO
+  const handleApprove = async () => {
+    if (!selectedOrder || !confirm('Bạn có chắc chắn muốn duyệt đơn SO này? Hệ thống sẽ tự động trừ tồn kho.')) return;
+    
+    setIsApproving(true);
+    try {
+      const res = await fetch(`/api/sales-orders/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: selectedOrder.id })
+      });
+
+      if (res.ok) {
+        alert('Duyệt và xuất kho thành công!');
+        setSelectedOrder(null); // Đóng popup
+        loadOrders(); // Tải lại danh sách SO
+      } else {
+        const data = await res.json();
+        alert('Lỗi: ' + (data.error || 'Không thể xuất kho'));
+      }
+    } catch (error) {
+      alert('Lỗi kết nối máy chủ');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -108,8 +138,6 @@ export default function SalesOrdersPage() {
                   <td style={{ padding: '12px' }}>{new Date(o.order_date).toLocaleDateString('vi-VN')}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#ea580c' }}>{formatCurrency(Number(o.total_amount))}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(o.status)}</td>
-                  
-                  {/* CỘT THAO TÁC CÓ NÚT SỬA */}
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                       <button 
@@ -119,7 +147,6 @@ export default function SalesOrdersPage() {
                         Xem
                       </button>
                       
-                      {/* Chỉ hiện nút Sửa nếu đơn chưa giao */}
                       {o.status === 'PENDING' && (
                         <Link 
                           href={`/sales-orders/${o.id}/edit`}
@@ -199,6 +226,22 @@ export default function SalesOrdersPage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '2px solid #e2e8f0', paddingTop: '16px' }}>
               <button onClick={() => setSelectedOrder(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Đóng</button>
+              
+              {/* ĐÃ TÍCH HỢP HÀM DUYỆT VÀO NÚT NÀY */}
+              {selectedOrder.status === 'PENDING' && (
+                <button 
+                  onClick={handleApprove} 
+                  disabled={isApproving}
+                  style={{ 
+                    padding: '10px 20px', borderRadius: '6px', border: 'none', 
+                    background: '#ea580c', color: '#fff', fontWeight: 600, 
+                    cursor: isApproving ? 'not-allowed' : 'pointer',
+                    opacity: isApproving ? 0.7 : 1
+                  }}
+                >
+                  {isApproving ? 'Đang duyệt xuất...' : 'Duyệt Xuất Kho'}
+                </button>
+              )}
             </div>
           </div>
         </div>

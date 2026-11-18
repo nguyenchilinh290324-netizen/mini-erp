@@ -1,78 +1,65 @@
 import { NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   const client = await pool.connect();
-
   try {
-    const body = await request.json();
-    const { order_id } = body;
+    const { order_id } = await req.json();
 
     if (!order_id) {
-      return NextResponse.json({ error: 'Thiếu mã đơn hàng' }, { status: 400 });
+      return NextResponse.json({ error: 'Thiếu ID đơn hàng' }, { status: 400 });
     }
 
     await client.query('BEGIN');
 
-    // 1. Kiểm tra trạng thái đơn SO
-    const orderRes = await client.query(
+    // 1. Kiểm tra trạng thái đơn hàng (chỉ duyệt đơn đang PENDING)
+    const checkOrder = await client.query(
       `SELECT status FROM orders WHERE id = $1 AND order_type = 'SALES'`,
       [order_id]
     );
 
-    if (orderRes.rowCount === 0) throw new Error('Không tìm thấy đơn bán hàng.');
-    if (orderRes.rows[0].status !== 'DRAFT') throw new Error('Đơn hàng đã được duyệt.');
+    if (checkOrder.rows.length === 0) {
+      throw new Error('Không tìm thấy đơn bán hàng SO này.');
+    }
+    if (checkOrder.rows[0].status !== 'PENDING') {
+      throw new Error('Đơn hàng này đã được duyệt hoặc không ở trạng thái chờ xuất kho.');
+    }
 
-    // 2. Lấy danh sách mặt hàng cần xuất
+    // 2. Cập nhật trạng thái đơn hàng thành COMPLETED (Đã xuất kho/Hoàn thành)
+    await client.query(
+      `UPDATE orders SET status = 'COMPLETED' WHERE id = $1`,
+      [order_id]
+    );
+
+    // 3. Lấy danh sách sản phẩm trong đơn để TRỪ tồn kho
     const itemsRes = await client.query(
       `SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
       [order_id]
     );
 
-    // 3. Trừ tồn kho và Ghi log
+    // 4. Trừ tồn kho và ghi log lịch sử giao dịch (Inventory Transactions)
     for (const item of itemsRes.rows) {
-      const { product_id, quantity } = item;
-
-      // Cập nhật tồn kho có điều kiện (Chỉ thành công nếu tồn kho hiện tại >= số lượng xuất)
-      const updateStock = await client.query(
-        `UPDATE products 
-         SET stock_quantity = stock_quantity - $1 
-         WHERE id = $2 AND stock_quantity >= $1
-         RETURNING id, sku`,
-        [quantity, product_id]
+      // Cập nhật bảng products (TRỪ số lượng)
+      await client.query(
+        `UPDATE products SET stock_quantity = COALESCE(stock_quantity, 0) - $1 WHERE id = $2`,
+        [item.quantity, item.product_id]
       );
 
-      // Nếu rowCount === 0 nghĩa là tồn kho không đủ để trừ
-      if (updateStock.rowCount === 0) {
-        throw new Error(`Sản phẩm không đủ tồn kho để xuất. Vui lòng kiểm tra lại!`);
-      }
-
-      // Ghi log xuất kho (OUT)
+      // Ghi nhận lịch sử XUẤT kho
       await client.query(
-        `INSERT INTO inventory_transactions 
-           (product_id, transaction_type, quantity, reference_id, notes, created_at)
-         VALUES ($1, 'OUT', $2, $3, $4, CURRENT_TIMESTAMP)`,
-        [
-          product_id, 
-          quantity, 
-          order_id, 
-          `Xuất kho cho Đơn bán hàng (SO) số #${order_id}`
-        ]
+        `INSERT INTO inventory_transactions (product_id, transaction_type, quantity, reference_id, notes)
+         VALUES ($1, 'OUT_SO', $2, $3, 'Xuất hàng từ Đơn SO')`,
+        [item.product_id, item.quantity, order_id]
       );
     }
 
-    // 4. Đổi trạng thái đơn thành COMPLETED
-    await client.query(
-      `UPDATE orders SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-      [order_id]
-    );
-
     await client.query('COMMIT');
-    return NextResponse.json({ success: true, message: 'Duyệt đơn & Xuất kho thành công!' }, { status: 200 });
+    return NextResponse.json({ message: 'Duyệt xuất kho thành công' });
 
   } catch (error: any) {
-    await client.query('ROLLBACK');
-    return NextResponse.json({ error: error.message || 'Lỗi hệ thống' }, { status: 500 });
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Lỗi duyệt SO:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
     client.release();
   }
