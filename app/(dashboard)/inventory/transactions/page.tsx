@@ -1,25 +1,26 @@
 import { pool } from '@/lib/db';
 import { Metadata } from 'next';
 
+// Ngăn Vercel cố gắng build tĩnh (prerender) trang này để tránh lỗi sập Build
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Lịch sử Xuất/Nhập kho | Mini-ERP',
 };
 
-// Khai báo type cho dòng dữ liệu trả về từ DB
 interface InventoryTransaction {
   id: string;
   created_at: Date;
   transaction_type: string;
   quantity: number;
   notes: string;
-  reference_code: string | null; // Đã đổi từ reference_id sang reference_code để lấy mã PO/SO
+  reference_code: string | null;
   sku: string;
   name: string;
 }
 
 export default async function InventoryTransactionsPage() {
-  // Thực thi truy vấn lấy lịch sử kho, JOIN với bảng products (lấy SKU & Name)
-  // và JOIN với bảng orders (lấy Mã đơn PO/SO thay vì chỉ ID)
+  // Thêm ::text vào các điều kiện JOIN để ép kiểu, khắc phục triệt để lỗi "text = integer"
   const result = await pool.query(`
     SELECT 
       it.id,
@@ -31,8 +32,8 @@ export default async function InventoryTransactionsPage() {
       p.sku,
       p.name
     FROM inventory_transactions it
-    LEFT JOIN products p ON it.product_id = p.id
-    LEFT JOIN orders o ON it.reference_id = o.id
+    LEFT JOIN products p ON it.product_id::text = p.id::text
+    LEFT JOIN orders o ON it.reference_id::text = o.id::text
     ORDER BY it.created_at DESC
     LIMIT 100
   `);
